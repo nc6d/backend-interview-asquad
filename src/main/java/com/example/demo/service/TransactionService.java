@@ -1,6 +1,7 @@
 package com.example.demo.service;
 
 import com.example.demo.model.Transaction;
+import com.example.demo.model.TransactionStatus;
 import com.example.demo.model.TransactionType;
 
 import java.math.BigDecimal;
@@ -9,6 +10,8 @@ import java.util.Optional;
 public interface TransactionService {
 
     Transaction create(TransactionType type, String reference, BigDecimal amount, String currency);
+
+    Transaction toProcessing(long id);
 
     Transaction toSuccess(long id);
 

@@ -2,24 +2,30 @@ package com.example.demo.controller;
 
 import com.example.demo.dto.TransactionCreateRequestDTO;
 import com.example.demo.dto.TransactionCreateResponseDTO;
+import com.example.demo.model.Transaction;
+import com.example.demo.model.TransactionStatus;
+import com.example.demo.repository.entity.TransactionEntity;
 import com.example.demo.service.TransactionService;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/v1/transaction")
+@Validated
 public class TransactionController {
 
     private final TransactionService transactionService;
 
-    @PostMapping
-    public TransactionCreateResponseDTO create(@RequestBody final TransactionCreateRequestDTO dto) {
+    @PostMapping("/")
+    public TransactionCreateResponseDTO create(@Valid @RequestBody final TransactionCreateRequestDTO dto) {
         var transaction = transactionService.create(
                 dto.getType(),
                 dto.getReference(),
