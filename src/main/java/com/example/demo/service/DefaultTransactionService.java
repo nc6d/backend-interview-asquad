@@ -1,6 +1,7 @@
 package com.example.demo.service;
 
 import com.example.demo.exception.DuplicateTransactionReferenceException;
+import com.example.demo.messaging.kafka.TransactionEventPublisher;
 import com.example.demo.model.Balance;
 import com.example.demo.model.Transaction;
 import com.example.demo.model.TransactionStatus;
@@ -26,6 +27,7 @@ public class DefaultTransactionService implements TransactionService {
     private final BalanceService balanceService;
     private final TransactionRepository transactionRepository;
     private final TransactionStatusRepository transactionStatusRepository;
+    private final TransactionEventPublisher eventPublisher;
 
     @Override
     public Transaction create(TransactionType type, String reference, BigDecimal amount, String currency) {
@@ -45,6 +47,10 @@ public class DefaultTransactionService implements TransactionService {
 
         try {
             transaction = transactionRepository.save(transaction);
+
+            log.info("Transaction created: {}", transaction);
+            eventPublisher.publishTransactionEvent(transaction);
+
             logStatusHistory(transaction.getId(), transaction.getStatus());
 
             // Simulate some processing logic
@@ -75,11 +81,15 @@ public class DefaultTransactionService implements TransactionService {
         transaction.setStatus(transaction.getStatus().transitionTo(TransactionStatus.SUCCESS));
         transaction = transactionRepository.save(transaction);
 
+
         // Update balance for DEPOSIT transactions
         if (transaction.getType() == TransactionType.DEPOSIT) {
             Balance balance = balanceService.getOrCreate(transaction.getCurrency());
             adjustBalance(balance, transaction.getAmount());
         }
+
+        log.info("Transaction updated to SUCCESS: {}", transaction);
+        eventPublisher.publishTransactionEvent(transaction);
 
         logStatusHistory(transaction.getId(), transaction.getStatus());
 
@@ -102,6 +112,9 @@ public class DefaultTransactionService implements TransactionService {
             Balance balance = balanceService.getOrCreate(transaction.getCurrency());
             adjustBalance(balance, transaction.getAmount());
         }
+
+        log.info("Transaction updated to ERROR: {}", transaction);
+        eventPublisher.publishTransactionEvent(transaction);
 
         logStatusHistory(transaction.getId(), transaction.getStatus());
 

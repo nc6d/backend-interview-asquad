@@ -49,6 +49,7 @@ spring:
       ack-mode: record
       concurrency: 4
 
+
   rabbitmq:
     listener:
       type: simple
