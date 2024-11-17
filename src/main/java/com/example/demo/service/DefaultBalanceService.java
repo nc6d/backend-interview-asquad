@@ -22,47 +22,20 @@ public class DefaultBalanceService implements BalanceService {
     private final EntityManager entityManager;
 
     @Override
-    @Transactional(
-            isolation = Isolation.REPEATABLE_READ,
-            timeout = 5
-    )
+    @Transactional
     public Balance getOrCreate(String currency) {
-        try {
-            log.debug("Attempting to get or create balance for currency: {}", currency);
-            Optional<BalanceEntity> existingBalance = balanceRepository.findByCurrencyForUpdate(currency);
+        // Attempt to insert a new balance
+        Long balanceId = balanceRepository.insertIfNotExists(currency);
 
-            if (existingBalance.isPresent()) {
-                log.debug("Found existing balance for currency: {}", currency);
-                return existingBalance.get();
-            }
-
-            log.debug("No existing balance found, creating new one for currency: {}", currency);
-            return createBalanceWithRetry(currency);
-
-        } catch (Exception e) {
-            log.error("Error in getOrCreate for currency {}", currency, e);
-            throw e;
+        if (balanceId != null) {
+            // A new balance was successfully created
+            return balanceRepository.findById(balanceId)
+                    .orElseThrow(() -> new IllegalStateException("Failed to retrieve newly created balance"));
         }
-    }
 
-    private BalanceEntity createBalanceWithRetry(String currency) {
-        try {
-            BalanceEntity newBalance = new BalanceEntity(currency);
-            BalanceEntity saved = balanceRepository.saveAndFlush(newBalance);
-            log.debug("Successfully created new balance for currency: {}", currency);
-            return saved;
-
-        } catch (DataIntegrityViolationException e) {
-            log.debug("Concurrent creation detected for currency {}, retrying find", currency);
-            entityManager.clear();
-
-            return balanceRepository.findByCurrencyForUpdate(currency)
-                    .orElseThrow(() -> {
-                        log.error("Balance record not found after handling duplicate creation for currency: {}", currency);
-                        return new IllegalStateException(
-                                "Balance record not found after handling duplicate creation");
-                    });
-        }
+        // The balance already exists, retrieve it
+        return balanceRepository.findByCurrency(currency)
+                .orElseThrow(() -> new IllegalStateException("Balance record not found for currency: " + currency));
     }
 
     @Override

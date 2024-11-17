@@ -22,4 +22,9 @@ public interface BalanceRepository extends JpaRepository<BalanceEntity, Long> {
     @QueryHints({@QueryHint(name = "javax.persistence.lock.timeout", value = "3000")})
     @Query("SELECT b FROM BalanceEntity b WHERE b.currency = :currency")
     Optional<BalanceEntity> findByCurrencyForUpdate(@Param("currency") String currency);
+
+    @Query(value =
+            "INSERT INTO balance (currency, amount, created_at) VALUES (:currency, 0.00, CURRENT_TIMESTAMP) ON CONFLICT (currency) DO NOTHING RETURNING id",
+            nativeQuery = true)
+    Long insertIfNotExists(@Param("currency") String currency);
 }
